@@ -61,7 +61,7 @@ def key_to_binary(key, n=32):
 
 class _DHTEntry(object):
     """
-    Implements an entry in a Dynamic Hash Table (DHT).
+    Implements an entry in a dynamic hash tree (DHT).
     """
 
     def __init__(self, key, value):
