@@ -10,7 +10,7 @@ database and file indexing.
 
 The following indexing methods are planned for implementation:
 - B+ Tree Indexing
-- ~~Dynamic Hashing
+- ~~Dynamic Hashing~~
 - Extendible Hashing
 - Linear Hashing
 
