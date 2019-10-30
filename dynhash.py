@@ -131,7 +131,7 @@ class _DHTNode(object):
         :param bitstring: A partially consumed bitstring representation of the key.
         :return: True if the key is found in the tree, False otherwise.
         """
-        tree_key, consumed_key = consume_key(key, bitstring)
+        tree_key, consumed_key = consume_key(bitstring, self.direction)
         if tree_key == LEFT_KEY:
             if isinstance(self.left_child, _DHTNode):
                 return self.left_child.contains(key, consumed_key)
@@ -190,10 +190,10 @@ class _DHTNode(object):
         :param bitstring: A partially consumed bitstring version of the key.
         :return: The value corresponding to the first instance of the key, else None.
         """
-        tree_key, consumed_key = consume_key(key, bitstring)
+        tree_key, consumed_key = consume_key(bitstring, self.direction)
         if tree_key == LEFT_KEY:
             if isinstance(self.left_child, _DHTNode):
-                return self.left_child.contains(key, consumed_key)
+                return self.left_child.get(key, consumed_key)
             elif isinstance(self.left_child, SortedList):
                 for entry in self.left_child:
                     if entry.key == key:
@@ -203,7 +203,7 @@ class _DHTNode(object):
                 raise KeyError
         elif tree_key == RIGHT_KEY:
             if isinstance(self.right_child, _DHTNode):
-                return self.right_child.contains(key, consumed_key)
+                return self.right_child.get(key, consumed_key)
             elif isinstance(self.right_child, SortedList):
                 for entry in self.right_child:
                     if entry.key == key:
@@ -248,7 +248,8 @@ class _DHTNode(object):
                 for i in range(self.depth):
                     _, consumed_key = consume_key(consumed_key, self.direction)
                 new_left.add(entry.key, consumed_key, entry.value)
-            self.left_child = new_left
+            if self.parent is not None:
+                self.parent.left_child = new_left
         elif tree_key == RIGHT_KEY:
             if not isinstance(self.right_child, SortedList):
                 raise Exception()
@@ -258,7 +259,8 @@ class _DHTNode(object):
                 for i in range(self.depth):
                     _, consumed_key = consume_key(consumed_key, self.direction)
                 new_right.add(entry.key, consumed_key, entry.value)
-            self.right_child = new_right
+            if self.parent is not None:
+                self.parent.right_child = new_right
         else:
             raise ValueError()
         self.internal = True
@@ -335,7 +337,9 @@ def test_dynamic_hashing():
     tree = DHT(n=3)
     for i in range(len(items)):
         tree.add(items[i], i)
-    print('Height:', tree.height())
+    assert tree.contains(9)
+    assert tree.height() == 2
+    assert tree.get(9) == 2
 
 
 if __name__ == '__main__':
