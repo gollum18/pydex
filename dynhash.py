@@ -3,6 +3,7 @@
 # Author: Christen Ford
 # Purpose: Implements the dynamic hashing index algorithm.
 
+import hashlib
 from sortedcontainers import SortedList
 
 # used to consume bits in a bitstring.
@@ -16,63 +17,170 @@ RIGHT_KEY = '1'  # maps all entries keyed to '1'
 
 # used by the SortedList to compare keys
 def extract_key(e):
-    return e.key
-
-
-def consume_key(key, direction):
     """
-    Consumes one bit from a binary key returning both the consumed bit and the remaining key.
-    :param key: The binary key to consume.
+    Attempts to return the key from an _IndexEntry
+    :param e: An _IndexEntry or a key type.
+    :return: If e is an _IndexEntry then 'e.key', otherwise 'e'.
+    """
+    if isinstance(e, _IndexEntry):
+        return e.key
+    else:
+        return e
+
+
+def consume_bitstring(bitstring, direction):
+    """
+    Consumes one bit from a binary string returning both the consumed bit and the partially consumed bitstring.
+    :param bitstring: A bitstring to consume.
     :param direction: The direction to consume from. One of {LEFT_TO_RIGHT, RIGHT_TO_LEFT}.
-    :return: A pair consisting of (bit, key-1).
-    :raises ValueError: If the key is not None or is not a string.
+    :return: A pair consisting of (bit, bitstring-1).
+    :raises ValueError: If the bitstring is None or is not a string.
     :raises ValueError: It the direction is not one of {LEFT_TO_RIGHT, RIGHT_TO_LEFT}.
     """
-    if key is None or not isinstance(key, str):
+    if bitstring is None or not isinstance(bitstring, str):
         raise ValueError
     if not (direction == LEFT_TO_RIGHT or direction == RIGHT_TO_LEFT):
         raise ValueError
-    if len(key) == 1:
-        return key[0], ""
+    if len(bitstring) == 1:
+        return bitstring[0], ""
     if direction == LEFT_TO_RIGHT:
-        bit = key[0]
-        consumed = key[1:len(key)]
+        return bitstring[0], bitstring[1:]
     else:
-        bit = key[-1]
-        consumed = key[0:len(key)-1]
-    return bit, consumed
+        return bitstring[-1], bitstring[:-1]
 
 
-def key_to_binary(key, n=32):
+def key_to_binary(key):
     """
-    Converts the given key to binary with a fixed number of bits.
-    :param key: The key to convert to binary.
-    :param n: The number of bits to fix the binary representation of the key to.
-    :return:
-    :raises ValueError: If the key is None or not an integer.
-    :raises ValueError: If n is less than 0.
+    Generates a binary representation of a key.
+    :param key: The key to transform.
+    :return: A binary representation of a 32 byte key.
     """
-    if key is None or not isinstance(key, int):
-        raise ValueError
-    if n < 0:
-        raise ValueError
-    return format(key, '0{bits}b'.format(bits=n))
+    digest = hashlib.sha256()
+    digest.update(bytes(key))
+    hk = digest.hexdigest()
+    bk = bin(int(hk, 16))[2:]
+    return bk
 
 
-class _DHTEntry(object):
+class _IndexEntry(object):
     """
-    Implements an entry in a dynamic hash tree (DHT).
+    Implements a generic index entry for use in the indexing classes.
     """
 
     def __init__(self, key, value):
         """
-        Returns a new instance of a _DHTEntry.
-        :param key: The key stored in the DHT entry.
-        :param value: The value stored in the DHT entry.
-        :return: An instance of a _DHTEntry object.
+        Returns a new instance of a _IndexEntry.
+        :param key: The key stored in the index entry.
+        :param value: The value stored in the index entry.
+        :return: An instance of a _IndexEntry object.
         """
         self.key = key
         self.value = value
+
+    def __lt__(self, other):
+        """
+        Implements rich comparison for less-than on two index entries as well as an index entry and a key.
+        :param other: An _IndexEntry or key type.
+        :return:  self.key < other.key OR self.key < other
+        """
+        if other is None:
+            raise ValueError
+        if isinstance(other, _IndexEntry):
+            return self.key < other.key
+        elif isinstance(other, type(self.key)):
+            return self.key < other
+        else:
+            raise ValueError
+
+    def __le__(self, other):
+        """
+        Implements rich comparison for less-than-or-equal-to on two index entries as well as an index entry and a key.
+        :param other: An _IndexEntry or key type.
+        :return: self.key <= other.key OR self.key <= other
+        """
+        if other is None:
+            raise ValueError
+        if isinstance(other, _IndexEntry):
+            return self.key <= other.key
+        elif isinstance(other, type(self.key)):
+            return self.key <= other
+        else:
+            raise ValueError
+
+    def __gt__(self, other):
+        """
+        Implements rich comparison for greater-than on two index entries as well as an index entry and a key.
+        :param other: An _IndexEntry or key type.
+        :return: self.key > other.key OR self.key > other
+        """
+        if other is None:
+            raise ValueError
+        if isinstance(other, _IndexEntry):
+            return self.key > other.key
+        elif isinstance(other, type(self.key)):
+            return self.key > other
+        else:
+            raise ValueError
+
+    def __ge__(self, other):
+        """
+        Implements rich comparison for greater-than-or-equal-to on two index entries as well as an index entry and a
+        key.
+        :param other: An _IndexEntry or key type.
+        :return: self.key >= other.key OR self.key >= other
+        """
+        if other is None:
+            raise ValueError
+        if isinstance(other, _IndexEntry):
+            return self.key >= other.key
+        elif isinstance(other, type(self.key)):
+            return self.key >= other
+        else:
+            raise ValueError
+
+    def __eq__(self, other):
+        """
+        Implements rich comparison for equal-to on two index entries as well as an index entry and a key.
+        :param other: An _IndexEntry or key type.
+        :return: self.key == other.key OR self.key == other
+        """
+        if other is None:
+            raise ValueError
+        if isinstance(other, _IndexEntry):
+            return self.key == other.key
+        elif isinstance(other, type(self.key)):
+            return self.key == other
+        else:
+            raise ValueError
+
+    def __ne__(self, other):
+        """
+        Implements rich comparison for not-equal-to on two index entries as well as an index entry and a key.
+        :param other: An _IndexEntry or key type.
+        :return: self.key != other.key OR self.key != other.
+        """
+        if other is None:
+            raise ValueError
+        if isinstance(other, _IndexEntry):
+            return self.key != other.key
+        elif isinstance(other, type(self.key)):
+            return self.key != other
+        else:
+            raise ValueError
+
+    def __hash__(self):
+        """
+
+        :return:
+        """
+        return hash(self.key)
+
+    def __str__(self):
+        """
+
+        :return:
+        """
+        return "({k}, {v})".format(k=self.key, v=self.value)
 
 
 class _DHTNode(object):
@@ -80,18 +188,18 @@ class _DHTNode(object):
     Implements a node in a dynamic hash tree. Used by the DHT class to perform internal operations on the tree.
     """
 
-    def __init__(self, parent=None, depth=0, n=8, direction=RIGHT_TO_LEFT):
+    def __init__(self, parent=None, depth=0, n=8, direction=LEFT_TO_RIGHT):
         """
         Returns an instance of a _DHTNode with the specified max bucket size and parent.
-        :param n: The max bucket size.
         :param parent: A pointer to the parent node.
+        :param depth: The depth of this node.
+        :param n: The max bucket size.
         :param direction: The direction to consume the key from.
         """
         self.n = n
         self.depth = depth
         self.parent = parent
         self.direction = direction
-        self.internal = False
         self.left_child = SortedList(key=extract_key)
         self.right_child = SortedList(key=extract_key)
 
@@ -102,12 +210,12 @@ class _DHTNode(object):
         :param bitstring: The key as a partially consumed bitstring.
         :param value: The value ordinate of the key-value pair.
         """
-        tree_key, consumed_key = consume_key(bitstring, self.direction)
+        tree_key, consumed_key = consume_bitstring(bitstring, self.direction)
         if tree_key == LEFT_KEY:
             if isinstance(self.left_child, _DHTNode):
                 self.left_child.add(key, consumed_key, value)
             elif isinstance(self.left_child, SortedList):
-                self.left_child.add(_DHTEntry(key, value))
+                self.left_child.add(_IndexEntry(key, value))
                 if len(self.left_child) > self.n:
                     self._overflow(LEFT_KEY)
             else:
@@ -116,7 +224,7 @@ class _DHTNode(object):
             if isinstance(self.right_child, _DHTNode):
                 self.right_child.add(key, consumed_key, value)
             elif isinstance(self.right_child, SortedList):
-                self.right_child.add(_DHTEntry(key, value))
+                self.right_child.add(_IndexEntry(key, value))
                 if len(self.right_child) > self.n:
                     self._overflow(RIGHT_KEY)
             else:
@@ -131,7 +239,7 @@ class _DHTNode(object):
         :param bitstring: A partially consumed bitstring representation of the key.
         :return: True if the key is found in the tree, False otherwise.
         """
-        tree_key, consumed_key = consume_key(bitstring, self.direction)
+        tree_key, consumed_key = consume_bitstring(bitstring, self.direction)
         if tree_key == LEFT_KEY:
             if isinstance(self.left_child, _DHTNode):
                 return self.left_child.contains(key, consumed_key)
@@ -161,7 +269,7 @@ class _DHTNode(object):
         :param key: The key ordinate of the key-value pair.
         :param bitstring: The key as a partially consumed bitstring.
         """
-        tree_key, consumed_key = consume_key(bitstring, self.direction)
+        tree_key, consumed_key = consume_bitstring(bitstring, self.direction)
         if tree_key == LEFT_KEY:
             if isinstance(self.left_child, _DHTNode):
                 self.left_child.delete(key, consumed_key)
@@ -190,7 +298,7 @@ class _DHTNode(object):
         :param bitstring: A partially consumed bitstring version of the key.
         :return: The value corresponding to the first instance of the key, else None.
         """
-        tree_key, consumed_key = consume_key(bitstring, self.direction)
+        tree_key, consumed_key = consume_bitstring(bitstring, self.direction)
         if tree_key == LEFT_KEY:
             if isinstance(self.left_child, _DHTNode):
                 return self.left_child.get(key, consumed_key)
@@ -198,7 +306,7 @@ class _DHTNode(object):
                 for entry in self.left_child:
                     if entry.key == key:
                         return entry.value
-                return None
+                raise KeyError
             else:
                 raise KeyError
         elif tree_key == RIGHT_KEY:
@@ -208,7 +316,7 @@ class _DHTNode(object):
                 for entry in self.right_child:
                     if entry.key == key:
                         return entry.value
-                return None
+                raise KeyError
             else:
                 raise KeyError
         else:
@@ -233,6 +341,26 @@ class _DHTNode(object):
             raise Exception()
         return max(left_height, right_height)
 
+    def traverse(self):
+        """
+        Traverse the tree left to right yielding entries as key-value pairs.
+        :return: A Python generator over the contents of the tree that yields key-value pairs.
+        """
+        if isinstance(self.left_child, SortedList):
+            for entry in self.left_child:
+                yield entry.key, entry.value
+        elif isinstance(self.left_child, _DHTNode):
+            yield from self.left_child.traverse()
+        else:
+            raise Exception()
+        if isinstance(self.right_child, SortedList):
+            for entry in self.right_child:
+                yield entry.key, entry.value
+        elif isinstance(self.right_child, _DHTNode):
+            yield from self.right_child.traverse()
+        else:
+            raise Exception()
+
     def _overflow(self, tree_key):
         """
         Handles overflows when they occur. This process converts the node into an internal node and redistributes its
@@ -242,28 +370,27 @@ class _DHTNode(object):
         if tree_key == LEFT_KEY:
             if not isinstance(self.left_child, SortedList):
                 raise Exception()
-            new_left = _DHTNode(self, n=self.n, depth=self.depth+1)
+            new_left = _DHTNode(parent=self, n=self.n, depth=self.depth+1, direction=self.direction)
             for entry in self.left_child:
                 consumed_key = key_to_binary(entry.key)
                 for i in range(self.depth):
-                    _, consumed_key = consume_key(consumed_key, self.direction)
+                    _, consumed_key = consume_bitstring(consumed_key, self.direction)
                 new_left.add(entry.key, consumed_key, entry.value)
-            if self.parent is not None:
-                self.parent.left_child = new_left
+            self.left_child.clear()
+            self.left_child = new_left
         elif tree_key == RIGHT_KEY:
             if not isinstance(self.right_child, SortedList):
                 raise Exception()
-            new_right = _DHTNode(self, n=self.n, depth=self.depth+1)
+            new_right = _DHTNode(parent=self, n=self.n, depth=self.depth+1, direction=self.direction)
             for entry in self.right_child:
                 consumed_key = key_to_binary(entry.key)
                 for i in range(self.depth):
-                    _, consumed_key = consume_key(consumed_key, self.direction)
+                    _, consumed_key = consume_bitstring(consumed_key, self.direction)
                 new_right.add(entry.key, consumed_key, entry.value)
-            if self.parent is not None:
-                self.parent.right_child = new_right
+            self.right_child.clear()
+            self.right_child = new_right
         else:
             raise ValueError()
-        self.internal = True
 
     def _underflow(self):
         """
@@ -278,7 +405,6 @@ class _DHTNode(object):
             self.parent.right_child = SortedList(key=extract_key)
         else:
             raise Exception
-        self.internal = False
 
 
 class DHT(object):
@@ -286,12 +412,12 @@ class DHT(object):
     Implements a dynamic hash tree for use in indexing.
     """
 
-    def __init__(self, n=8):
+    def __init__(self, n=8, direction=LEFT_TO_RIGHT):
         """
         Returns a new instance of a DHT with a specified max number of entries per node.
         :param n: The max number of entries per node.
         """
-        self.root = _DHTNode(n=n)
+        self.root = _DHTNode(n=n, direction=direction)
 
     def add(self, key, value):
         """
@@ -331,16 +457,27 @@ class DHT(object):
         """
         return self.root.height()
 
+    def traverse(self):
+        """
+        Traverse the tree left to right yielding entries as key-value pairs.
+        :return: A Python generator over the contents of the tree that yields key-value pairs.
+        """
+        yield from self.root.traverse()
 
-def test_dynamic_hashing():
-    items = [5, 1, 9, 3, 8, 2, 6, 0, 7]
-    tree = DHT(n=3)
+
+def test_dht():
+    items = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    tree = DHT(n=3, direction=LEFT_TO_RIGHT)
     for i in range(len(items)):
         tree.add(items[i], i)
-    assert tree.contains(9)
-    assert tree.height() == 2
-    assert tree.get(9) == 2
+    for key, value in tree.traverse():
+        print("==> ({k}, {v})".format(k=key, v=value))
+    assert(tree.contains(9))
+    assert(tree.height() == 4)
+    tree.delete(9)
+    assert(not tree.contains(9))
+    print("Dynamic hash tree testing succeeded!")
 
 
 if __name__ == '__main__':
-    test_dynamic_hashing()
+    test_dht()
