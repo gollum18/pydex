@@ -101,7 +101,7 @@ class _DHTNode(object):
         if ff < 0.25:
             ff = 0.25
         self.ff = ff
-        if not (self.direction == LEFT_TO_RIGHT or self.direction == RIGHT_TO_LEFT):
+        if not (direction == LEFT_TO_RIGHT or direction == RIGHT_TO_LEFT):
             direction = LEFT_TO_RIGHT
         self.n = n
         self.ff = ff
@@ -327,7 +327,7 @@ class DHT(object):
         if ff < 0.25:
             ff = 0.25
         self.ff = ff
-        if not (self.direction == LEFT_TO_RIGHT or self.direction == RIGHT_TO_LEFT):
+        if not (direction == LEFT_TO_RIGHT or direction == RIGHT_TO_LEFT):
             direction = LEFT_TO_RIGHT
         self.direction = direction
         self.root = _DHTNode(n=self.n, ff=self.ff, direction=self.direction)
